@@ -10,7 +10,6 @@ if [[ "$1" == '-l' ]]; then
     security find-certificate -a | awk '/^keychain/ {if(k!=$0){print; k=$0;}} /"labl"<blob>=/{sub(".*<blob>=","          "); print}'
     exit
 fi
-
 if [[ ! ( # any of the following are not true
         # 1st arg is an existing regular file
         -f "$1" &&
@@ -25,7 +24,8 @@ if [[ ! ( # any of the following are not true
         ) ]];
     then
         cat << EOF >&2
-    Usage: $(basename "$0") Application.ipa foo/bar.mobileprovision "iPhone Distribution: I can haz code signed"
+    Usage: $(basename "$0") Application.ipa foo/bar.mobileprovision "iPhone Distribution: I can haz code signed" 
+    Usage: $(basename "$0") Application.ipa foo/bar.mobileprovision "iPhone Distribution: I can haz code signed" foo/Entitlements.xcent
     Usage: $(basename "$0") -i Application.ipa
 
     Options:
@@ -48,6 +48,13 @@ realpath(){
 
 IPA="$(realpath $1)"
 
+#find the entitlements path if provided
+ENTITLEMENTS_PATH=""
+if [ $# -gt 3 ]
+then
+	ENTITLEMENTS_PATH="$(realpath "$4")"
+fi
+
 TMP="$(mktemp -d /tmp/resign.$(basename "$IPA" .ipa).XXXXX)"
 IPA_NEW="$(pwd)/$(basename "$IPA" .ipa).resigned.ipa"
 CLEANUP_TEMP=0 # Do not remove this line or "set -o nounset" will error on checks below
@@ -67,7 +74,13 @@ if [[ ! ($INSPECT_ONLY == 1) ]]; then
     echo "Embedding provision       '$(/usr/libexec/PlistBuddy -c "Print :Name" provision.plist)', which supports '$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" provision.plist)'"
     rm -rf Payload/*.app/_CodeSignature Payload/*.app/CodeResources
     cp "$PROVISION" Payload/*.app/embedded.mobileprovision
-    /usr/bin/codesign -f -s "$CERTIFICATE" --resource-rules Payload/*.app/ResourceRules.plist Payload/*.app
+	if [ -n "${ENTITLEMENTS_PATH}" ]
+	then
+	    /usr/bin/codesign -f -s "$CERTIFICATE" --entitlements "${ENTITLEMENTS_PATH}" --resource-rules Payload/*.app/ResourceRules.plist Payload/*.app
+	else
+	    /usr/bin/codesign -f -s "$CERTIFICATE" --resource-rules Payload/*.app/ResourceRules.plist Payload/*.app
+	fi
+
     zip -qr "$IPA_NEW" Payload
 fi
 [[ $CLEANUP_TEMP -eq 1 ]] && rm -rf "$TMP"
