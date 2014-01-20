@@ -25,7 +25,7 @@ if [[ ! ( # any of the following are not true
     then
         cat << EOF >&2
     Usage: $(basename "$0") Application.ipa foo/bar.mobileprovision "iPhone Distribution: I can haz code signed" 
-    Usage: $(basename "$0") Application.ipa foo/bar.mobileprovision "iPhone Distribution: I can haz code signed" some/path/to/Entitlements.entitlements
+    Usage: $(basename "$0") Application.ipa foo/bar.mobileprovision "iPhone Distribution: I can haz code signed" foo/Entitlements.xcent
     Usage: $(basename "$0") -i Application.ipa
 
     Options:
@@ -47,7 +47,6 @@ realpath(){
 }
 
 IPA="$(realpath $1)"
-PROVISION="$(realpath "$2")"
 
 #find the entitlements path if provided
 ENTITLEMENTS_PATH=""
@@ -69,6 +68,7 @@ echo "App has BundleIdentifier  '$(/usr/libexec/PlistBuddy -c 'Print :CFBundleId
 security cms -D -i Payload/*.app/embedded.mobileprovision > mobileprovision.plist
 echo "App has provision         '$(/usr/libexec/PlistBuddy -c "Print :Name" mobileprovision.plist)', which supports '$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" mobileprovision.plist)'"
 if [[ ! ($INSPECT_ONLY == 1) ]]; then
+	PROVISION="$(realpath "$2")"
     CERTIFICATE="$3"
     security cms -D -i "$PROVISION" > provision.plist
     echo "Embedding provision       '$(/usr/libexec/PlistBuddy -c "Print :Name" provision.plist)', which supports '$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" provision.plist)'"
