@@ -48,6 +48,13 @@ realpath(){
 
 IPA="$(realpath $1)"
 
+#find the provisioning profile path
+PROVISION=""
+if [ $# -gt 1 ]
+then
+	PROVISION="$(realpath "$2")"
+fi
+
 #find the entitlements path if provided
 ENTITLEMENTS_PATH=""
 if [ $# -gt 3 ]
@@ -68,7 +75,6 @@ echo "App has BundleIdentifier  '$(/usr/libexec/PlistBuddy -c 'Print :CFBundleId
 security cms -D -i Payload/*.app/embedded.mobileprovision > mobileprovision.plist
 echo "App has provision         '$(/usr/libexec/PlistBuddy -c "Print :Name" mobileprovision.plist)', which supports '$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" mobileprovision.plist)'"
 if [[ ! ($INSPECT_ONLY == 1) ]]; then
-	PROVISION="$(realpath "$2")"
     CERTIFICATE="$3"
     security cms -D -i "$PROVISION" > provision.plist
     echo "Embedding provision       '$(/usr/libexec/PlistBuddy -c "Print :Name" provision.plist)', which supports '$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" provision.plist)'"
